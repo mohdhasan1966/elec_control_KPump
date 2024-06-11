@@ -1,0 +1,112 @@
+#include <Wire.h>
+#include "MAX30100_PulseOximeter.h"
+#include <Servo.h>
+#define REPORTING_PERIOD_MS     700
+#define Qtd_Amostras 200 // ***Quantas Amostras o filtro terá para filtrar, mude para testar outros filtros***
+#define Intervalo_Amostragem 10 // ***definindo o intervalo de amostragem em ms. Mude para testar novos filtros***
+Servo ESC; // Apontar para biblioteca servo
+int pino_pot = A0; //Pino do potenciometro
+int valor=0;// armazenar os dados do HR
+int matriz;
+int valor3;
+int matriz1;
+int x;
+int oxo;
+int i;
+int valor2;
+int RPM;  
+PulseOximeter pox; // criar pulso do oximetro
+uint32_t tsLastReport = 0; // o tempo da ultima marcçao da batida
+void onBeatDetected() { // chamar a rotina toda vez o pulso detectado
+    Serial.println("Beat!");
+}
+
+void setup() {
+    Serial.begin(9600);
+       
+    ESC.attach(8, 1000, 2000);
+    delay(1000);
+    while(!Serial);
+    
+   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);	// Configurar o sensor para  7.6mA para o LED drive
+
+    
+    pox.setOnBeatDetectedCallback(onBeatDetected); // Gravar oretorno da rotina
+    Serial.println("Man\t Aut\t Bat");
+   }
+
+   void loop() {
+    // Read from the sensor
+    pox.update(); // ler o sensor
+       oxo = (pox.getHeartRate()); //ler o batimento e gravar no oxo
+       valor = analogRead(pino_pot); // ler o valor do pot
+
+    Serial.print("iniçiar o sensor..");//Initialize sensor
+Amostragem(); // Essa é a função que fará a amostragem no tempo que determinamos no intervalo
+              // de amostragem que definimos na segunda linha de código.
+         if (!pox.begin()) {
+        Serial.println("MANUAL MODE");
+        valor = map(filtroLogico(valor), 0, 1023, 0, 180);//leitura pot
+       valor2 = map(valor, 0, 180, 4000, 12000);//leitura manual
+       ESC.write(valor);
+           } 
+    else {
+        oxo = map(filtroLogico(oxo), 0, 230, 20, 180);// leitura batimentos
+       valor3 = map(oxo, 0, 180, 3000, 12000);// modo automatico.
+       ESC.write(oxo);
+    
+    }
+     
+        
+        
+    if (millis() - tsLastReport > REPORTING_PERIOD_MS) { //nivel de o2 e batimentos
+       
+        Serial.print("NIVEL DO O2 :");
+        Serial.print(pox.getSpO2());
+        Serial.print(" %");
+        
+        Serial.print("  VELOCIDADE = ");
+        Serial.println(valor2);
+        Serial.print("\t");
+        Serial.print("  VELOCIDADE MODO AUTOMATICO =: ");
+        Serial.print(valor3);
+        Serial.print("\t");
+        Serial.print("  BATIDA POR MINUTO =: ");
+        Serial.println(x);
+
+        tsLastReport = millis();
+        // para incluir dados externo para teste e calibraçáo pode usar a matriza 
+       //int valor4 [6] = {200, 180, 160, 140, 120, 100};// matriz valor 4, pode alterar com qualquer valor
+       //for(i=0; i<6; i++){
+       //matriz = analogRead(valor4 [i]);}
+       //matriz=map(matriz, 0, 230, 0, 1023);
+       //matriz1 = map(matriz, 0, 1023, 0, 180);
+       //ESC.write(matriz1);
+       //delay(1000);
+   }
+    void Amostragem(){ // Essa função verifica se o tempo de amostragem selecionado ocorreu
+    if(millis() - timer1>Intervalo_Amostragem){ // Caso o tempo de amostragem tenha ocorrido, ele envia 1 para a função de filtro de media movel
+    //Dessa forma a função sabe que é para atualizar o valor de saída para um novo valor filtrado
+   filtroLogico(1);
+    timer1 = millis(); // atualiza para contar o tempo mais uma vez
+    }
+    }
+    float filtroLogico(bool atualiza_saida){ // Igual nos outros exemplos, ele usa variavel estática.
+    int diferenca; // Variavel que salvará a diferenca entre o valor do filtro e a saída
+    static float Saida_Filtro = 0; // A variavel 
+    if(atualiza_saida == 0) return((double)Saida_Filtro);
+    else{
+    if(Leitura_analogica<Saida_Filtro){
+   diferenca = abs(Leitura_analogica - Saida_Filtro);
+   Saida_Filtro -= (float)diferenca/(float)Qtd_Amostras;
+    }
+    else if(Leitura_analogica>Saida_Filtro){
+    diferenca = abs(Leitura_analogica - Saida_Filtro);
+    Saida_Filtro += (float)diferenca/(float)Qtd_Amostras;
+
+}
+}
+}
+       
+}
+}
