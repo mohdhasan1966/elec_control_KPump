@@ -75,15 +75,8 @@ Amostragem(); // Essa é a função que fará a amostragem no tempo que determin
         Serial.println(x);
 
         tsLastReport = millis();
-        // para incluir dados externo para teste e calibraçáo pode usar a matriza 
-       //int valor4 [6] = {200, 180, 160, 140, 120, 100};// matriz valor 4, pode alterar com qualquer valor
-       //for(i=0; i<6; i++){
-       //matriz = analogRead(valor4 [i]);}
-       //matriz=map(matriz, 0, 230, 0, 1023);
-       //matriz1 = map(matriz, 0, 1023, 0, 180);
-       //ESC.write(matriz1);
-       //delay(1000);
-   }
+       
+   
     void Amostragem(){ // Essa função verifica se o tempo de amostragem selecionado ocorreu
     if(millis() - timer1>Intervalo_Amostragem){ // Caso o tempo de amostragem tenha ocorrido, ele envia 1 para a função de filtro de media movel
     //Dessa forma a função sabe que é para atualizar o valor de saída para um novo valor filtrado
