@@ -1,105 +1,190 @@
 #include <Wire.h>
 #include "MAX30100_PulseOximeter.h"
+#define REPORTING_PERIOD_MS     1000
 #include <Servo.h>
-#define REPORTING_PERIOD_MS     700
-#define Qtd_Amostras 200 // ***Quantas Amostras o filtro terá para filtrar, mude para testar outros filtros***
-#define Intervalo_Amostragem 10 // ***definindo o intervalo de amostragem em ms. Mude para testar novos filtros***
 Servo ESC; // Apontar para biblioteca servo
 int pino_pot = A0; //Pino do potenciometro
-int valor=0;// armazenar os dados do HR
-int matriz;
-int valor3;
-int matriz1;
-int x;
-int oxo;
+int valor1=0;// armazenar os dados do HR
+#define N_sampls 10
+int sampls[N_sampls];
+int media_movel();
 int i;
-int valor2;
-int RPM;  
-PulseOximeter pox; // criar pulso do oximetro
-uint32_t tsLastReport = 0; // o tempo da ultima marcçao da batida
-void onBeatDetected() { // chamar a rotina toda vez o pulso detectado
-    Serial.println("Beat!");
-}
+
+//  PulseOximeter objeto
+PulseOximeter pox;
+
+// Tempo da ultima batida
+uint32_t tsLastReport = 0;
 
 void setup() {
+  
     Serial.begin(9600);
-       
-    ESC.attach(8, 1000, 2000);
-    delay(1000);
-    while(!Serial);
+    ESC.attach(8, 1000, 2500);
+    for (i=0; i < N_sampls; i++){
+      sampls[i] = 0;
+    }
     
-   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);	// Configurar o sensor para  7.6mA para o LED drive
+    //Serial.print("Initializar o sensor..");
 
-    
-    pox.setOnBeatDetectedCallback(onBeatDetected); // Gravar oretorno da rotina
-    Serial.println("Man\t Aut\t Bat");
-   }
-
-   void loop() {
-    // Read from the sensor
-    pox.update(); // ler o sensor
-       oxo = (pox.getHeartRate()); //ler o batimento e gravar no oxo
-       valor = analogRead(pino_pot); // ler o valor do pot
-
-    Serial.print("iniçiar o sensor..");//Initialize sensor
-Amostragem(); // Essa é a função que fará a amostragem no tempo que determinamos no intervalo
-              // de amostragem que definimos na segunda linha de código.
-         if (!pox.begin()) {
-        Serial.println("MANUAL MODE");
-        valor = map(filtroLogico(valor), 0, 1023, 0, 180);//leitura pot
-       valor2 = map(valor, 0, 180, 4000, 12000);//leitura manual
-       ESC.write(valor);
-           } 
+     //Initialize sensor
+    if (!pox.begin()) {
+       Serial.println("FAILED");
+            } 
     else {
-        oxo = map(filtroLogico(oxo), 0, 230, 20, 180);// leitura batimentos
-       valor3 = map(oxo, 0, 180, 3000, 12000);// modo automatico.
-       ESC.write(oxo);
-    
+        Serial.println("SUCCESS");
     }
-     
-        
-        
-    if (millis() - tsLastReport > REPORTING_PERIOD_MS) { //nivel de o2 e batimentos
-       
-        Serial.print("NIVEL DO O2 :");
-        Serial.print(pox.getSpO2());
-        Serial.print(" %");
-        
-        Serial.print("  VELOCIDADE = ");
-        Serial.println(valor2);
-        Serial.print("\t");
-        Serial.print("  VELOCIDADE MODO AUTOMATICO =: ");
-        Serial.print(valor3);
-        Serial.print("\t");
-        Serial.print("  BATIDA POR MINUTO =: ");
-        Serial.println(x);
 
+	// Configurar o sensor para usar 40,2 mA para o driver do LED
+	pox.setIRLedCurrent(MAX30100_LED_CURR_40_2MA);
+
+    // Register a callback routine
+    //pox.setOnBeatDetectedCallback(onBeatDetected);
+}
+
+void loop() {
+    // Leitor do Sensor
+    pox.update();
+     int x;
+     int pulso;
+     int valor;
+     x = (pox.getHeartRate());
+     int media_movel();
+     for(i = N_sampls-1; i>0; i-- ){
+      sampls[i] = sampls[i-1];
+     }
+     sampls[0] = x;
+     int soma = 0;
+     for ( i= 0; i = N_sampls; i++){
+      soma += sampls[i];
+     }
+     return soma/N_sampls;
+    // Gravar updated heart rate e SpO2
+    if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+      if (media_movel()>0){
+         //pulso = map(media_movel(), 1, 180, 20, 179);// leitura batimentos
+         if (media_movel() > 1 && media_movel() < 50){
+        ESC.write(50);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(50, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+        //Serial.print("  bpm / SpO2:");
+        //Serial.println(pox.getSpO2());
+                 
+         if (media_movel() > 50 && media_movel() < 55){
+        ESC.write(55);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(55, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+         
+         if (media_movel() > 55 && media_movel() < 60){
+        ESC.write(60);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(60, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+
+         if (media_movel() > 60 && media_movel() < 65){
+        ESC.write(65);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(65, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+         
+        if (media_movel() > 65 && media_movel() < 70){
+        ESC.write(70);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(70, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+
+               
+        if (media_movel() > 70 && media_movel() < 75){
+        ESC.write(75);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(75, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+        
+         if (media_movel() > 75 && media_movel() < 80){
+        ESC.write(80);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(80, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+         if (media_movel() > 80 && media_movel() < 85){
+        ESC.write(85);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(85, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+         
+         if (media_movel() > 85 && media_movel() < 90){
+        ESC.write(90);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(90, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+         
+
+         if (media_movel() > 95 && media_movel() < 100){
+        ESC.write(100);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(100, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+
+        if (media_movel() > 100 && media_movel() <= 180){
+        ESC.write(180);
+        Serial.print("Batimentos Cardiacos = ");
+        Serial.print(media_movel());
+        valor = map(180, 0, 180, 3000, 12000);
+        Serial.print("  velocidade do Motor = ");
+        Serial.println(valor);
+             
+          
         tsLastReport = millis();
-       
-   
-    void Amostragem(){ // Essa função verifica se o tempo de amostragem selecionado ocorreu
-    if(millis() - timer1>Intervalo_Amostragem){ // Caso o tempo de amostragem tenha ocorrido, ele envia 1 para a função de filtro de media movel
-    //Dessa forma a função sabe que é para atualizar o valor de saída para um novo valor filtrado
-   filtroLogico(1);
-    timer1 = millis(); // atualiza para contar o tempo mais uma vez
+      }
+         }
+         }
+         }
+        }
+        }
+         }
+         }
+         }
+         }
+      }
+      }    
+}    
+       else{
+        int valor1 = analogRead(pino_pot); // ler o valor do pot
+        Serial.print("Pot = ");
+        Serial.print(valor1);
+        Serial.print("  MODO Manual");
+        Serial.print("  Velocidade do Motor = ");
+        valor1 = map(valor1, 0, 1023, 0, 179);//leitura pot
+       int valor2 = map(valor1, 0, 179, 4000, 12000);//leitura manual
+       Serial.println(valor2);
+        ESC.write(valor1);
+        
+      }
     }
-    }
-    float filtroLogico(bool atualiza_saida){ // Igual nos outros exemplos, ele usa variavel estática.
-    int diferenca; // Variavel que salvará a diferenca entre o valor do filtro e a saída
-    static float Saida_Filtro = 0; // A variavel 
-    if(atualiza_saida == 0) return((double)Saida_Filtro);
-    else{
-    if(Leitura_analogica<Saida_Filtro){
-   diferenca = abs(Leitura_analogica - Saida_Filtro);
-   Saida_Filtro -= (float)diferenca/(float)Qtd_Amostras;
-    }
-    else if(Leitura_analogica>Saida_Filtro){
-    diferenca = abs(Leitura_analogica - Saida_Filtro);
-    Saida_Filtro += (float)diferenca/(float)Qtd_Amostras;
-
-}
-}
-}
-       
-}
-}
